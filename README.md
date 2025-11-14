@@ -1,2 +1,2 @@
-# text-comparer
+# text-comparator
 Compare two texts!
