@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Text Comparator</title>
+<style>
+  body {
+    margin: 0;
+    font-family: monospace;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  #buttons {
+    padding: 10px;
+    background-color: #333;
+    display: flex;
+    gap: 10px;
+  }
+
+  button {
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  #editor-container {
+    display: flex;
+    flex: 1;
+    height: calc(100vh - 50px);
+  }
+
+  textarea {
+    flex: 1;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 14px;
+    border: none;
+    resize: none;
+    overflow: auto;
+  }
+
+  /* Highlight differences in the second textarea */
+  #diffText {
+    background-color: #fff;
+  }
+
+  /* Style for highlighted parts */
+  .highlight {
+    background-color: yellow;
+  }
+</style>
+</head>
+<body>
+
+<div id="buttons">
+  <button id="compareBtn">Compare</button>
+  <button id="goToFirstDiffBtn">Go To First Difference</button>
+  <button id="exportBtn">Export as .txt</button>
+  <button id="copyBtn">Copy Text</button>
+</div>
+
+<div id="editor-container">
+  <textarea id="text1" placeholder="Enter first text..."></textarea>
+  <textarea id="text2" placeholder="Enter second text..."></textarea>
+</div>
+
+<script>
+  const text1 = document.getElementById('text1');
+  const text2 = document.getElementById('text2');
+  const compareBtn = document.getElementById('compareBtn');
+  const goToFirstDiffBtn = document.getElementById('goToFirstDiffBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  const text2Area = document.getElementById('text2');
+
+  let differences = [];
+  let firstDiffLine = 0;
+
+  // Function to compare texts and highlight differences
+  function compareTexts() {
+    // Reset previous highlights
+    const originalText = text2.value;
+    // Clear previous highlighting
+    text2.innerHTML = '';
+
+    const lines1 = text1.value.split('\n');
+    const lines2 = text2.value.split('\n');
+
+    differences = [];
+    let highlightedText = '';
+
+    for (let i = 0; i < lines2.length; i++) {
+      const line2 = lines2[i];
+      const line1 = lines1[i] || '';
+
+      if (line2 !== line1) {
+        // Store first difference line
+        if (differences.length === 0) {
+          firstDiffLine = i;
+        }
+        differences.push(i);
+        // Highlight this line
+        highlightedText += `<div class="highlight">${escapeHtml(line2)}</div>`;
+      } else {
+        highlightedText += `<div>${escapeHtml(line2)}</div>`;
+      }
+    }
+
+    // Handle extra lines in text2
+    for (let i = lines2.length; i < lines1.length; i++) {
+      // Extra lines in text2 are considered differences
+      if (differences.length === 0) {
+        firstDiffLine = i;
+      }
+      differences.push(i);
+      highlightedText += `<div class="highlight">${escapeHtml(lines2[i] || '')}</div>`;
+    }
+
+    text2Area.innerHTML = highlightedText;
+  }
+
+  // Escape HTML special characters
+  function escapeHtml(text) {
+    return text.replace(/[&<>"']/g, function(match) {
+      const escapeMap = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      };
+      return escapeMap[match];
+    });
+  }
+
+  // Event listener for compare button
+  compareBtn.addEventListener('click', () => {
+    compareTexts();
+  });
+
+  // Event listener for "Go To First Difference" button
+  goToFirstDiffBtn.addEventListener('click', () => {
+    if (differences.length > 0) {
+      const lineIndex = firstDiffLine;
+      // Scroll to the line in the second textarea
+      const lines = text2.value.split('\n');
+      let position = 0;
+      for (let i = 0; i < lineIndex; i++) {
+        position += lines[i].length + 1; // +1 for newline
+      }
+      text2.focus();
+      text2.setSelectionRange(position, position + lines[lineIndex].length);
+    } else {
+      alert('No differences found.');
+    }
+  });
+
+  // Event listener for export button
+  exportBtn.addEventListener('click', () => {
+    const text = text2.value;
+    const blob = new Blob([text], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'comparison.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Event listener for copy button
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(text2.value).then(() => {
+      alert('Text copied to clipboard!');
+    });
+  });
+</script>
+
+</body>
+</html>
